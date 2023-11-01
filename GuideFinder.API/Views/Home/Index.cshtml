@@ -1,0 +1,433 @@
+﻿@model List<GuideFinder.Entities.Guide>
+
+@{
+    ViewBag.Title = "Guide List";
+    Layout = "_Layout";
+}
+<script>
+    $(document).ready(function () {
+        $(document).on("click", ".open-detail", function () {
+            var guideId = $(this).data("id");
+
+            $.ajax({
+                type: "GET",
+                url: "/api/guidedetail/GetGuideDetails?guideId=" + guideId,
+                dataType: "json",
+                success: function (data) {
+                    var tableBody = $("#detail-table-body");
+                    tableBody.empty();
+
+                    data.forEach(function (item) {
+                        var row = '<tr>';
+                        row += '<td>' + item.id + '</td>';
+                        row += '<td>' + item.phone + '</td>';
+                        row += '<td>' + item.email + '</td>';
+                        row += '<td>' + item.address + '</td>';
+                        row += '<td>' + item.location + '</td>';
+                        row += '<td>' + item.explanation + '</td>';
+                        row += '<td><a class="btn btn-primary delete-detail-button" data-id="' + item.id + '">Kaldır</a></td>';
+                        row += '</tr>';
+                        tableBody.append(row);
+                    });
+                },
+                error: function (err) {
+                    console.log(err.statusText);
+                }
+            });
+        });
+
+        $(document).on("click", ".delete-detail-button", function () {
+            var guideId = $(this).data("id");
+            if (confirm("Bu kaydı silmek istediğinizden emin misiniz?")) {
+                $.ajax({
+                    type: "DELETE",
+                    url: "/api/guidedetail?Id=" + guideId,
+                    success: function () {
+                        location.reload(true);
+                    },
+                    error: function () {
+                        // Hata durumları
+                    }
+                });
+            }
+        });
+    });
+</script>
+
+
+
+<script>
+    function OnAddClick() {
+        var formData = {
+            name: $("#name").val(),
+            surname: $("#surname").val(),
+            company: $("#company").val(),
+            explanation: $("#explanation").val()
+        };
+
+        var jsonData = JSON.stringify(formData);
+
+        $.ajax({
+            type: "POST",
+            url: "/api/guide",
+            dataType: "json",
+            contentType: 'application/json',
+            data: jsonData,
+            success: function (result) {
+                alert("İşlem başarıyla tamamlandı.");
+
+                setTimeout(function () {
+                    location.reload(true);
+                }, 2000);
+            },
+            error: function (err) {
+
+            }
+        });
+    }
+
+</script>
+
+<script>
+    $(document).ready(function () {
+        $(".delete-button").on("click", function () {
+            var guideId = $(this).data("id");
+            if (confirm("Bu kaydı silmek istediğinizden emin misiniz?")) {
+                $.ajax({
+                    type: "DELETE",
+                    url: "/api/guide?Id=" + guideId,
+                    success: function () {
+                        location.reload(true);
+                    },
+                    error: function () {
+                    }
+                });
+            }
+        });
+    });
+</script>
+
+<script>
+    function clearModalForm() {
+        $("#phone").val("");
+        $("#email").val("");
+        $("#address").val("");
+        $("#location").val("");
+        $("#explanation").val("");
+    }
+
+
+    $(document).ready(function () {
+        $(".open-popup").on("click", function () {
+            var guideId = $(this).data("id");
+            $("#guideId").val(guideId);
+        });
+
+        $("#saveInfo").on("click", function () {
+            var formData = {
+                GuideId: parseInt($("#guideId").val(), 10),
+                Phone: $("#phone").val(),
+                Email: $("#email").val(),
+                Address: $("#address").val(),
+                Location: $("#location").val(),
+                Explanation: $("#explanation").val()
+            };
+
+            var jsonData = JSON.stringify(formData);
+
+            $.ajax({
+                type: "POST",
+                url: "/api/guidedetail",
+                contentType: 'application/json',
+                data: jsonData,
+                success: function () {
+                    alert("İşlem başarıyla tamamlandı.");
+                },
+                error: function () {
+
+                }
+            });
+        });
+    });
+
+
+</script>
+
+<script>
+    function addLatestReportToTable(report) {
+        var tableBody = $("#reportTable tbody");
+        var newRow = $("<tr style='background-color:red'>");
+        newRow.append($('<td>').text('###'));
+        newRow.append($('<td>').text(report.location));
+        newRow.append($('<td>').text('...'));
+        newRow.append($('<td>').text('...'));
+        newRow.append($('<td>').text('...'));
+        newRow.append($('<td>').text('...'));
+        newRow.append($('<td>').html(report.status ? '<b>hazır</b>' : 'Hazırlanıyor.'));
+
+        tableBody.prepend(newRow);
+        setTimeout(function () {
+            location.reload();
+        }, 5000);
+    }
+
+    $(document).ready(function () {
+        $("#openModalButton").click(function () {
+            $("#reportModal").modal("show");
+        });
+
+        $("#createReportButton").click(function () {
+            var selectedLocation = $("#location2").val();
+
+            var reportData = {
+                location: selectedLocation
+            };
+
+            $.ajax({
+                type: "POST",
+                url: "/api/report/CreateReport",
+                data: JSON.stringify(reportData),
+                contentType: "application/json",
+                success: function (data) {
+                    console.log("Rapor oluşturuldu:", data);
+                    $("#reportModal").modal("hide");
+                    addLatestReportToTable(data);
+                },
+                error: function (error) {
+                    console.error("Hata oluştu:", error);
+                }
+            });
+        });
+    });
+
+</script>
+
+<script>
+    $(document).ready(function () {
+    // API'den verileri çek
+    $.ajax({
+        url: '/api/report', // API endpoint URL
+        method: 'GET',
+        dataType: 'json',
+        success: function (data) {
+            // Verileri tabloya ekle
+            var table = $('#reportTable tbody');
+            $.each(data, function (index, item) {
+                var row = $('<tr>');
+                row.append($('<td>').text(item.id));
+                row.append($('<td>').text(item.location));
+                row.append($('<td>').text(item.numberOfContacts));
+                row.append($('<td>').text(item.numberOfPhoneNumbers));
+                row.append($('<td>').text(item.uuid));
+                row.append($('<td>').text(item.requestDate));
+                row.append($('<td>').html(item.status ? '<b style="color:green">Hazır</b>' : 'Hazırlanıyor.'));
+                table.append(row);
+            });
+        },
+        error: function (error) {
+            console.log(error);
+        }
+    });
+});
+
+</script>
+<!-- Modal -->
+<div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModal2Label">Düzenle</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="guideCreate">
+                    <div class="form-group">
+                        <label for="name">Ad</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Adı girin">
+                    </div>
+                    <div class="form-group">
+                        <label for="surname">Soyad</label>
+                        <input type="text" class="form-control" id="surname" name="surname" placeholder="Soyadı girin">
+                    </div>
+                    <div class="form-group">
+                        <label for="company">Firma</label>
+                        <input type="text" class="form-control" id="company" name="company" placeholder="Firmayı girin">
+                    </div>
+                    <div class="form-group">
+                        <label for="explanation">Açıklama</label>
+                        <textarea class="form-control" id="explanation" name="explanation" placeholder="Açıklamayı girin"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
+                        <button type="button" class="btn btn-primary" onclick="OnAddClick()">Kaydet</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal1" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Bilgi Ekle</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="infoForm">
+                    <input type="hidden" id="guideId" name="GuideId" value="">
+                    <div class="form-group">
+                        <label for="phone">Telefon</label>
+                        <input type="text" class="form-control" id="phone" name="Phone" placeholder="Telefon numarasını girin" value="test">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-posta</label>
+                        <input type="text" class="form-control" id="email" name="Email" placeholder="E-posta adresini girin" value="test">
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Adres</label>
+                        <input type="text" class="form-control" id="address" name="Address" placeholder="Adresi girin" value="test">
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Konum</label>
+                        <select id="location" name="Location">
+                            <option value="Ankara">Ankara</option>
+                            <option value="İstanbul">İstanbul</option>
+                            <option value="Muğla">Muğla</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="explanation">Açıklama</label>
+                        <textarea class="form-control" id="explanation" name="Explanation" placeholder="Açıklamayı girin">test</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="saveInfo">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="exampleModal3" tabindex="-1" role="dialog" aria-labelledby="exampleModal3Label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div style="width:700px" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModal3Label">Bilgi Görüntüle</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Telefon</th>
+                            <th>Email</th>
+                            <th>Adres</th>
+                            <th>Konum</th>
+                            <th>Açıklama</th>
+                            <th>#</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detail-table-body">
+                        <!-- Detay verileri buraya eklenecek -->
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" role="dialog" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportModalLabel">Rapor Oluştur</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="location">Konum:</label>
+                <select id="location2" name="location2" class="form-control">
+                    <option value="Ankara">Ankara</option>
+                    <option value="İstanbul">İstanbul</option>
+                    <option value="Muğla">Muğla</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="createReportButton">Rapor Oluştur</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<h2>Rehber</h2>
+
+<a class="btn btn-primary" data-toggle="modal" data-target="#exampleModal2">Yeni Ekle</a>
+<button id="openModalButton" class="btn btn-primary">Rapor oluştur</button>
+
+<table id="list" class="table table-bordered table-striped">
+    <thead class="thead-dark">
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Surname</th>
+            <th>Company</th>
+            <th>Explanation</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var guide in Model)
+        {
+            <tr>
+                <td>@guide.Id</td>
+                <td>@guide.Name</td>
+                <td>@guide.Surname</td>
+                <td>@guide.Company</td>
+                <td>@guide.Explanation</td>
+                <td>
+                    <a class="btn btn-primary open-detail" data-toggle="modal" data-target="#exampleModal3" data-id="@guide.Id">Bilgi Görüntüle</a>
+                    <a class="btn btn-primary open-popup" data-toggle="modal" data-target="#exampleModal1" data-id="@guide.Id">Bilgi Ekle</a>
+                    <a class="btn btn-primary delete-button" data-id="@guide.Id">Kaldır</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+<h2>Rapor listesi</h2>
+
+<table id="reportTable" class="table table-striped table-bordered table-hover">
+    <thead class="thead-dark">
+        <tr>
+            <th>ID</th>
+            <th>Location</th>
+            <th>Number of Contacts</th>
+            <th>Number of Phone Numbers</th>
+            <th>UUID</th>
+            <th>Request Date</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+
